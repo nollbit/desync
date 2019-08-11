@@ -388,6 +388,12 @@ Unpack a directory tree using an index file referencing a chunked archive.
 desync untar -i -s /some/local/store archive.caidx /some/dir
 ```
 
+Unpack a directory tree from an index file and store the output filesystem in a GNU tar file rather than the local filesystem. Instead of an archive file, the output can be given as '-' which will write to STDOUT.
+
+```text
+desync untar -i -s /some/local/store --output-format=gnu-tar archive.caidx /path/to/archive.tar
+```
+
 Prune a store to only contain chunks that are referenced in the provided index files. Possible data loss.
 
 ```text
