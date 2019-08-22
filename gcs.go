@@ -114,18 +114,6 @@ func (s GCSStore) GetChunk(id ChunkID) (*Chunk, error) {
 
 	b, err := ioutil.ReadAll(obj)
 
-	/*
-		if e, ok := err.(minio.ErrorResponse); ok {
-			switch e.Code {
-			case "NoSuchBucket":
-				err = fmt.Errorf("bucket '%s' does not exist", s.bucket)
-			case "NoSuchKey":
-				err = ChunkMissing{ID: id}
-			default: // Without ListBucket perms in AWS, we get Permission Denied for a missing chunk, not 404
-				err = errors.Wrap(err, fmt.Sprintf("chunk %s could not be retrieved from GCS store", id))
-			}
-		}
-	*/
 	if err != nil {
 		return nil, err
 	}
