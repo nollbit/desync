@@ -33,3 +33,5 @@ require (
 	gopkg.in/cheggaaa/pb.v1 v1.0.25
 	gopkg.in/ini.v1 v1.38.2 // indirect
 )
+
+go 1.13
