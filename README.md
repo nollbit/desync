@@ -20,8 +20,8 @@ Among the distinguishing factors:
 - Supports chunking with the same algorithm used by casync (see `make` command) but executed in parallel. Results are identical to what casync produces, same chunks and index files, but with significantly better performance. For example, up to 10x faster than casync if the chunks are already present in the store. If the chunks are new, it heavily depends on I/O, but it's still likely several times faster than casync.
 - While casync supports very small min chunk sizes, optimizations in desync require min chunk sizes larger than the window size of the rolling hash used (currently 48 bytes). The tool's default chunk sizes match the defaults used in casync, min 16k, avg 64k, max 256k.
 - Allows FUSE mounting of blob indexes
-- S3 protocol support to access chunk stores for read operations and some some commands that write chunks
-- Stores and retrieves index files from remote index stores such as HTTP, SFTP and S3
+- S3 protocol support and Google Cloud Storage to access chunk stores for read operations and some some commands that write chunks
+- Stores and retrieves index files from remote index stores such as HTTP, SFTP, S3 and GCS
 - Built-in HTTP(S) index server to read/write indexes
 - Reflinking matching blocks (rather than copying) from seed files if supported by the filesystem (currently only Btrfs and XFS)
 
@@ -90,7 +90,7 @@ go get -u github.com/folbricht/desync/cmd/desync
 
 ### Options (not all apply to all commands)
 
-- `-s <store>` Location of the chunk store, can be local directory or a URL like ssh://hostname/path/to/store. Multiple stores can be specified, they'll be queried for chunks in the same order. The `chop`, `make`, `tar` and `prune` commands support updating chunk stores in S3, while `verify` only operates on a local store.
+- `-s <store>` Location of the chunk store, can be local directory or a URL like ssh://hostname/path/to/store. Multiple stores can be specified, they'll be queried for chunks in the same order. The `chop`, `make`, `tar` and `prune` commands support updating chunk stores in S3/GCS, while `verify` only operates on a local store.
 - `--seed <indexfile>` Specifies a seed file and index for the `extract` command. The tool expects the matching file to be present and have the same name as the index file, without the `.caibx` extension.
 - `--seed-dir <dir>` Specifies a directory containing seed files and their indexes for the `extract` command. For each index file in the directory (`*.caibx`) there needs to be a matching blob without the extension.
 - `-c <store>` Location of a chunk store to be used as cache. Needs to be writable.

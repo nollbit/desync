@@ -144,6 +144,11 @@ func storeFromLocation(location string, cmdOpt cmdStoreOptions) (desync.Store, e
 		if err != nil {
 			return nil, err
 		}
+	case "gs":
+		s, err = desync.NewGCSStore(loc, opt)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		s, err = desync.NewLocalStore(location, opt)
 		if err != nil {
@@ -251,6 +256,11 @@ func indexStoreFromLocation(location string, cmdOpt cmdStoreOptions) (desync.Ind
 			return nil, "", fmt.Errorf("unknown S3 bucket lookup type: %q", s)
 		}
 		s, err = desync.NewS3IndexStore(&p, s3Creds, region, opt, lookup)
+		if err != nil {
+			return nil, "", err
+		}
+	case "gs":
+		s, err = desync.NewGCSIndexStore(&p, opt)
 		if err != nil {
 			return nil, "", err
 		}
