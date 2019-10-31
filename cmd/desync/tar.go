@@ -14,7 +14,7 @@ import (
 )
 
 type tarOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	store       string
 	chunkSize   string
 	createIndex bool
@@ -52,12 +52,12 @@ the input can be a tar file or stream to STDIN with '-'.
 	flags.StringVar(&opt.inFormat, "input-format", "disk", "input format, 'disk' or 'tar'")
 	flags.BoolVarP(&opt.NoTime, "no-time", "", false, "set file timestamps to zero in the archive")
 	flags.BoolVarP(&opt.AddRoot, "tar-add-root", "", false, "pretend that all tar elements have a common root directory")
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runTar(ctx context.Context, opt tarOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 	if opt.createIndex && opt.store == "" {
@@ -116,7 +116,7 @@ func runTar(ctx context.Context, opt tarOptions, args []string) error {
 	r, w := io.Pipe()
 
 	// Open the target store
-	s, err := WritableStore(opt.store, opt.cmdStoreOptions)
+	s, err := WritableStore(opt.store, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
@@ -154,5 +154,5 @@ func runTar(ctx context.Context, opt tarOptions, args []string) error {
 	}
 
 	// Write the index
-	return storeCaibxFile(index, output, opt.cmdStoreOptions)
+	return storeCaibxFile(index, output, opt.CmdStoreOptions)
 }

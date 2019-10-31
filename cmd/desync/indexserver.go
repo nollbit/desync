@@ -17,7 +17,7 @@ import (
 )
 
 type indexServerOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	cmdServerOptions
 	store           string
 	listenAddresses []string
@@ -47,13 +47,13 @@ enables writing to this store.`,
 	flags.StringSliceVarP(&opt.listenAddresses, "listen", "l", []string{":http"}, "listen address")
 	flags.BoolVarP(&opt.writable, "writeable", "w", false, "support writing")
 	flags.StringVar(&opt.logFile, "log", "", "request log file or - for STDOUT")
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	addServerOptions(&opt.cmdServerOptions, flags)
 	return cmd
 }
 
 func runIndexServer(ctx context.Context, opt indexServerOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 	if err := opt.cmdServerOptions.validate(); err != nil {
@@ -84,9 +84,9 @@ func runIndexServer(ctx context.Context, opt indexServerOptions, args []string) 
 		err error
 	)
 	if opt.writable {
-		s, _, err = writableIndexStore(loc, opt.cmdStoreOptions)
+		s, _, err = writableIndexStore(loc, opt.CmdStoreOptions)
 	} else {
-		s, _, err = indexStoreFromLocation(loc, opt.cmdStoreOptions)
+		s, _, err = indexStoreFromLocation(loc, opt.CmdStoreOptions)
 	}
 	if err != nil {
 		return err

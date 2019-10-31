@@ -18,7 +18,7 @@ import (
 // command line.
 // cacheLocation - Place of the local store used for caching, can be blank
 // storeLocation - URLs or paths to remote or local stores that should be queried in order
-func MultiStoreWithCache(cmdOpt cmdStoreOptions, cacheLocation string, storeLocations ...string) (desync.Store, error) {
+func MultiStoreWithCache(cmdOpt CmdStoreOptions, cacheLocation string, storeLocations ...string) (desync.Store, error) {
 	// Combine all stores into one router
 	store, err := multiStoreWithRouter(cmdOpt, storeLocations...)
 	if err != nil {
@@ -43,7 +43,7 @@ func MultiStoreWithCache(cmdOpt cmdStoreOptions, cacheLocation string, storeLoca
 
 // multiStoreWithRouter is used to parse store locations, and return a store
 // router instance containing them all for reading, in the order they're given
-func multiStoreWithRouter(cmdOpt cmdStoreOptions, storeLocations ...string) (desync.Store, error) {
+func multiStoreWithRouter(cmdOpt CmdStoreOptions, storeLocations ...string) (desync.Store, error) {
 	var stores []desync.Store
 	for _, location := range storeLocations {
 		s, err := storeGroup(location, cmdOpt)
@@ -59,7 +59,7 @@ func multiStoreWithRouter(cmdOpt cmdStoreOptions, storeLocations ...string) (des
 // storeGroup parses a store-location string and if it finds a "|" in the string initializes
 // each store in the group individually before wrapping them into a FailoverGroup. If there's
 // no "|" in the string, this is a nop.
-func storeGroup(location string, cmdOpt cmdStoreOptions) (desync.Store, error) {
+func storeGroup(location string, cmdOpt CmdStoreOptions) (desync.Store, error) {
 	if !strings.ContainsAny(location, "|") {
 		return storeFromLocation(location, cmdOpt)
 	}
@@ -79,7 +79,7 @@ func storeGroup(location string, cmdOpt cmdStoreOptions) (desync.Store, error) {
 // commands that expect to write chunks, such as make or tar. It determines
 // which type of writable store is needed, instantiates and returns a
 // single desync.WriteStore.
-func WritableStore(location string, cmdOpt cmdStoreOptions) (desync.WriteStore, error) {
+func WritableStore(location string, cmdOpt CmdStoreOptions) (desync.WriteStore, error) {
 	s, err := storeFromLocation(location, cmdOpt)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func WritableStore(location string, cmdOpt cmdStoreOptions) (desync.WriteStore, 
 }
 
 // Parse a single store URL or path and return an initialized instance of it
-func storeFromLocation(location string, cmdOpt cmdStoreOptions) (desync.Store, error) {
+func storeFromLocation(location string, cmdOpt CmdStoreOptions) (desync.Store, error) {
 	loc, err := url.Parse(location)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse store location %s : %s", location, err)
@@ -160,7 +160,7 @@ func storeFromLocation(location string, cmdOpt cmdStoreOptions) (desync.Store, e
 	return s, nil
 }
 
-func readCaibxFile(location string, cmdOpt cmdStoreOptions) (c desync.Index, err error) {
+func ReadCaibxFile(location string, cmdOpt CmdStoreOptions) (c desync.Index, err error) {
 	is, indexName, err := indexStoreFromLocation(location, cmdOpt)
 	if err != nil {
 		return c, err
@@ -170,7 +170,7 @@ func readCaibxFile(location string, cmdOpt cmdStoreOptions) (c desync.Index, err
 	return idx, errors.Wrap(err, location)
 }
 
-func storeCaibxFile(idx desync.Index, location string, cmdOpt cmdStoreOptions) error {
+func storeCaibxFile(idx desync.Index, location string, cmdOpt CmdStoreOptions) error {
 	is, indexName, err := writableIndexStore(location, cmdOpt)
 	if err != nil {
 		return err
@@ -183,7 +183,7 @@ func storeCaibxFile(idx desync.Index, location string, cmdOpt cmdStoreOptions) e
 // commands that expect to write indexes, such as make or tar. It determines
 // which type of writable store is needed, instantiates and returns a
 // single desync.IndexWriteStore.
-func writableIndexStore(location string, cmdOpt cmdStoreOptions) (desync.IndexWriteStore, string, error) {
+func writableIndexStore(location string, cmdOpt CmdStoreOptions) (desync.IndexWriteStore, string, error) {
 	s, indexName, err := indexStoreFromLocation(location, cmdOpt)
 	if err != nil {
 		return nil, indexName, err
@@ -196,7 +196,7 @@ func writableIndexStore(location string, cmdOpt cmdStoreOptions) (desync.IndexWr
 }
 
 // Parse a single store URL or path and return an initialized instance of it
-func indexStoreFromLocation(location string, cmdOpt cmdStoreOptions) (desync.IndexStore, string, error) {
+func indexStoreFromLocation(location string, cmdOpt CmdStoreOptions) (desync.IndexStore, string, error) {
 	loc, err := url.Parse(location)
 	if err != nil {
 		return nil, "", fmt.Errorf("Unable to parse store location %s : %s", location, err)

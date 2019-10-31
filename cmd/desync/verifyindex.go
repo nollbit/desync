@@ -8,7 +8,7 @@ import (
 )
 
 type verifyIndexOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 }
 
 func newVerifyIndexCommand(ctx context.Context) *cobra.Command {
@@ -27,18 +27,18 @@ from STDIN.`,
 		SilenceUsage: true,
 	}
 	flags := cmd.Flags()
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 func runVerifyIndex(ctx context.Context, opt verifyIndexOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 	indexFile := args[0]
 	dataFile := args[1]
 
 	// Read the input
-	idx, err := readCaibxFile(indexFile, opt.cmdStoreOptions)
+	idx, err := ReadCaibxFile(indexFile, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}

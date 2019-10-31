@@ -11,7 +11,7 @@ import (
 )
 
 type pruneOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	store string
 	yes   bool
 }
@@ -35,12 +35,12 @@ from STDIN.`,
 	flags := cmd.Flags()
 	flags.StringVarP(&opt.store, "store", "s", "", "target store")
 	flags.BoolVarP(&opt.yes, "yes", "y", false, "do not ask for confirmation")
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runPrune(ctx context.Context, opt pruneOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 	if opt.store == "" {
@@ -48,7 +48,7 @@ func runPrune(ctx context.Context, opt pruneOptions, args []string) error {
 	}
 
 	// Open the target store
-	sr, err := storeFromLocation(opt.store, opt.cmdStoreOptions)
+	sr, err := storeFromLocation(opt.store, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func runPrune(ctx context.Context, opt pruneOptions, args []string) error {
 	// Read the input files and merge all chunk IDs in a map to de-dup them
 	ids := make(map[desync.ChunkID]struct{})
 	for _, name := range args {
-		c, err := readCaibxFile(name, opt.cmdStoreOptions)
+		c, err := ReadCaibxFile(name, opt.CmdStoreOptions)
 		if err != nil {
 			return err
 		}

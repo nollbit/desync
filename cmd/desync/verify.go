@@ -10,7 +10,7 @@ import (
 )
 
 type verifyOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	store  string
 	repair bool
 }

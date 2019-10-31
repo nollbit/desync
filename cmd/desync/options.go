@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// cmdStoreOptions are used to pass additional options to store initalization from the
+// CmdStoreOptions are used to pass additional options to store initalization from the
 // commandline. These generally override settings from the config file.
-type cmdStoreOptions struct {
+type CmdStoreOptions struct {
 	n             int
 	clientCert    string
 	clientKey     string
@@ -20,7 +20,7 @@ type cmdStoreOptions struct {
 
 // MergeWith takes store options as read from the config, and applies command-line
 // provided options on top of them and returns the merged result.
-func (o cmdStoreOptions) MergedWith(opt desync.StoreOptions) desync.StoreOptions {
+func (o CmdStoreOptions) MergedWith(opt desync.StoreOptions) desync.StoreOptions {
 	opt.N = o.n
 	if o.clientCert != "" {
 		opt.ClientCert = o.clientCert
@@ -41,7 +41,7 @@ func (o cmdStoreOptions) MergedWith(opt desync.StoreOptions) desync.StoreOptions
 }
 
 // Validate the command line options are sensical and return an error if they aren't.
-func (o cmdStoreOptions) validate() error {
+func (o CmdStoreOptions) validate() error {
 	if (o.clientKey == "") != (o.clientCert == "") {
 		return errors.New("--client-key and --client-cert options need to be provided together")
 	}
@@ -49,7 +49,7 @@ func (o cmdStoreOptions) validate() error {
 }
 
 // Add common store option flags to a command flagset.
-func addStoreOptions(o *cmdStoreOptions, f *pflag.FlagSet) {
+func addStoreOptions(o *CmdStoreOptions, f *pflag.FlagSet) {
 	f.IntVarP(&o.n, "concurrency", "n", 10, "number of concurrent goroutines")
 	f.StringVar(&o.clientCert, "client-cert", "", "path to client certificate for TLS authentication")
 	f.StringVar(&o.clientKey, "client-key", "", "path to client key for TLS authentication")

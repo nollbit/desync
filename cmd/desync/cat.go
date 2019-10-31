@@ -11,7 +11,7 @@ import (
 )
 
 type catOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	stores         []string
 	cache          string
 	offset, length int
@@ -45,12 +45,12 @@ Use '-' to read the index from STDIN.`,
 	flags.StringVarP(&opt.cache, "cache", "c", "", "store to be used as cache")
 	flags.IntVarP(&opt.offset, "offset", "o", 0, "offset in bytes to seek to before reading")
 	flags.IntVarP(&opt.length, "length", "l", 0, "number of bytes to read")
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runCat(ctx context.Context, opt catOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 
@@ -76,14 +76,14 @@ func runCat(ctx context.Context, opt catOptions, args []string) error {
 	}
 
 	// Parse the store locations, open the stores and add a cache is requested
-	s, err := MultiStoreWithCache(opt.cmdStoreOptions, opt.cache, opt.stores...)
+	s, err := MultiStoreWithCache(opt.CmdStoreOptions, opt.cache, opt.stores...)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
 	// Read the input
-	c, err := readCaibxFile(inFile, opt.cmdStoreOptions)
+	c, err := ReadCaibxFile(inFile, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}

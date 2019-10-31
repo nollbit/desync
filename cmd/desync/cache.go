@@ -9,7 +9,7 @@ import (
 )
 
 type cacheOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	stores []string
 	cache  string
 }
@@ -34,12 +34,12 @@ index file. Use '-' to read (a single) index from STDIN.`,
 	flags := cmd.Flags()
 	flags.StringSliceVarP(&opt.stores, "store", "s", nil, "source store(s)")
 	flags.StringVarP(&opt.cache, "cache", "c", "", "target store")
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runCache(ctx context.Context, opt cacheOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 	if len(opt.stores) == 0 {
@@ -52,7 +52,7 @@ func runCache(ctx context.Context, opt cacheOptions, args []string) error {
 	// Read the input files and merge all chunk IDs in a map to de-dup them
 	idm := make(map[desync.ChunkID]struct{})
 	for _, name := range args {
-		c, err := readCaibxFile(name, opt.cmdStoreOptions)
+		c, err := ReadCaibxFile(name, opt.CmdStoreOptions)
 		if err != nil {
 			return err
 		}
@@ -67,13 +67,13 @@ func runCache(ctx context.Context, opt cacheOptions, args []string) error {
 		ids = append(ids, id)
 	}
 
-	s, err := multiStoreWithRouter(opt.cmdStoreOptions, opt.stores...)
+	s, err := multiStoreWithRouter(opt.CmdStoreOptions, opt.stores...)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
-	dst, err := WritableStore(opt.cache, opt.cmdStoreOptions)
+	dst, err := WritableStore(opt.cache, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}

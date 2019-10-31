@@ -8,7 +8,7 @@ import (
 )
 
 type listOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 }
 
 func newListCommand(ctx context.Context) *cobra.Command {
@@ -27,17 +27,17 @@ the index from STDIN.`,
 		SilenceUsage: true,
 	}
 	flags := cmd.Flags()
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runList(ctx context.Context, opt listOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 
 	// Read the input
-	c, err := readCaibxFile(args[0], opt.cmdStoreOptions)
+	c, err := ReadCaibxFile(args[0], opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}

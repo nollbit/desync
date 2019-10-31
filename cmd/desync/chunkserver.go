@@ -14,7 +14,7 @@ import (
 )
 
 type chunkServerOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	cmdServerOptions
 	stores          []string
 	cache           string
@@ -68,13 +68,13 @@ needing to restart the server. This can be done under load as well.
 	flags.BoolVar(&opt.skipVerifyWrite, "skip-verify-write", true, "don't verify chunk data written to this server (faster)")
 	flags.BoolVarP(&opt.uncompressed, "uncompressed", "u", false, "serve uncompressed chunks")
 	flags.StringVar(&opt.logFile, "log", "", "request log file or - for STDOUT")
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	addServerOptions(&opt.cmdServerOptions, flags)
 	return cmd
 }
 
 func runChunkServer(ctx context.Context, opt chunkServerOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 	if err := opt.cmdServerOptions.validate(); err != nil {
@@ -189,12 +189,12 @@ func chunkServerStore(opt chunkServerOptions) (desync.Store, error) {
 
 	var s desync.Store
 	if opt.writable {
-		s, err = WritableStore(stores[0], opt.cmdStoreOptions)
+		s, err = WritableStore(stores[0], opt.CmdStoreOptions)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		s, err = MultiStoreWithCache(opt.cmdStoreOptions, cache, stores...)
+		s, err = MultiStoreWithCache(opt.CmdStoreOptions, cache, stores...)
 		if err != nil {
 			return nil, err
 		}

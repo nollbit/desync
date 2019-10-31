@@ -11,7 +11,7 @@ import (
 )
 
 type mtreeOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	stores    []string
 	cache     string
 	readIndex bool
@@ -40,12 +40,12 @@ The input is either a catar archive, or a caidx index file (with -i and -s).
 	flags.StringSliceVarP(&opt.stores, "store", "s", nil, "source store(s), used with -i")
 	flags.StringVarP(&opt.cache, "cache", "c", "", "store to be used as cache")
 	flags.BoolVarP(&opt.readIndex, "index", "i", false, "read index file (caidx), not catar")
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runMtree(ctx context.Context, opt mtreeOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 	if opt.readIndex && len(opt.stores) == 0 {
@@ -69,14 +69,14 @@ func runMtree(ctx context.Context, opt mtreeOptions, args []string) error {
 		return desync.UnTar(ctx, r, fs)
 	}
 
-	s, err := MultiStoreWithCache(opt.cmdStoreOptions, opt.cache, opt.stores...)
+	s, err := MultiStoreWithCache(opt.CmdStoreOptions, opt.cache, opt.stores...)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
 	// Apparently the input must be an index, read it whole
-	index, err := readCaibxFile(input, opt.cmdStoreOptions)
+	index, err := ReadCaibxFile(input, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}

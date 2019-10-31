@@ -12,7 +12,7 @@ import (
 )
 
 type makeOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	store      string
 	chunkSize  string
 	printStats bool
@@ -39,12 +39,12 @@ to STDOUT.`,
 	flags.StringVarP(&opt.store, "store", "s", "", "target store")
 	flags.StringVarP(&opt.chunkSize, "chunk-size", "m", "16:64:256", "min:avg:max chunk size in kb")
 	flags.BoolVarP(&opt.printStats, "print-stats", "", false, "show chunking statistics")
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runMake(ctx context.Context, opt makeOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 
@@ -59,7 +59,7 @@ func runMake(ctx context.Context, opt makeOptions, args []string) error {
 	// Open the target store if one was given
 	var s desync.WriteStore
 	if opt.store != "" {
-		s, err = WritableStore(opt.store, opt.cmdStoreOptions)
+		s, err = WritableStore(opt.store, opt.CmdStoreOptions)
 		if err != nil {
 			return err
 		}
@@ -83,7 +83,7 @@ func runMake(ctx context.Context, opt makeOptions, args []string) error {
 	if opt.printStats {
 		return printJSON(stderr, stats) // write to stderr since stdout could be used for index data
 	}
-	return storeCaibxFile(index, indexFile, opt.cmdStoreOptions)
+	return storeCaibxFile(index, indexFile, opt.CmdStoreOptions)
 }
 
 func parseChunkSizeParam(s string) (min, avg, max uint64, err error) {

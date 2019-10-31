@@ -11,7 +11,7 @@ import (
 )
 
 type infoOptions struct {
-	cmdStoreOptions
+	CmdStoreOptions
 	stores      []string
 	printFormat string
 }
@@ -35,17 +35,17 @@ store. Use '-' to read the index from STDIN.`,
 	flags := cmd.Flags()
 	flags.StringSliceVarP(&opt.stores, "store", "s", nil, "source store(s)")
 	flags.StringVarP(&opt.printFormat, "format", "f", "json", "output format, plain or json")
-	addStoreOptions(&opt.cmdStoreOptions, flags)
+	addStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runInfo(ctx context.Context, opt infoOptions, args []string) error {
-	if err := opt.cmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.validate(); err != nil {
 		return err
 	}
 
 	// Read the index
-	c, err := readCaibxFile(args[0], opt.cmdStoreOptions)
+	c, err := ReadCaibxFile(args[0], opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func runInfo(ctx context.Context, opt infoOptions, args []string) error {
 	results.Unique = len(deduped)
 
 	if len(opt.stores) > 0 {
-		store, err := multiStoreWithRouter(cmdStoreOptions{n: opt.n}, opt.stores...)
+		store, err := multiStoreWithRouter(CmdStoreOptions{n: opt.n}, opt.stores...)
 		if err != nil {
 			return err
 		}
