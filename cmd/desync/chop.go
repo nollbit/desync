@@ -9,7 +9,7 @@ import (
 )
 
 type chopOptions struct {
-	CmdStoreOptions
+	desync.CmdStoreOptions
 	store         string
 	ignoreIndexes []string
 }
@@ -37,12 +37,12 @@ Use '-' to read the index from STDIN.`,
 	flags := cmd.Flags()
 	flags.StringVarP(&opt.store, "store", "s", "", "target store")
 	flags.StringSliceVarP(&opt.ignoreIndexes, "ignore", "", nil, "index(s) to ignore chunks from")
-	addStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runChop(ctx context.Context, opt chopOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
 	if opt.store == "" {
@@ -53,14 +53,14 @@ func runChop(ctx context.Context, opt chopOptions, args []string) error {
 	dataFile := args[1]
 
 	// Open the target store
-	s, err := WritableStore(opt.store, opt.CmdStoreOptions)
+	s, err := desync.WritableStore(opt.store, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
 	// Read the input
-	c, err := ReadCaibxFile(indexFile, opt.CmdStoreOptions)
+	c, err := desync.ReadCaibxFile(indexFile, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func runChop(ctx context.Context, opt chopOptions, args []string) error {
 			m[c.ID] = c
 		}
 		for _, f := range opt.ignoreIndexes {
-			i, err := ReadCaibxFile(f, opt.CmdStoreOptions)
+			i, err := desync.ReadCaibxFile(f, opt.CmdStoreOptions)
 			if err != nil {
 				return err
 			}
@@ -91,5 +91,5 @@ func runChop(ctx context.Context, opt chopOptions, args []string) error {
 	pb := NewProgressBar("")
 
 	// Chop up the file into chunks and store them in the target store
-	return desync.ChopFile(ctx, dataFile, chunks, s, opt.n, pb)
+	return desync.ChopFile(ctx, dataFile, chunks, s, opt.N, pb)
 }

@@ -36,7 +36,7 @@ func runPull(ctx context.Context, opt pullOptions, args []string) error {
 	// SSH only supports serving compressed chunks currently. And we really
 	// don't want to have to decompress every chunk to verify its checksum.
 	// Clients will do that anyway, so disable verification here.
-	sOpt := cfg.GetStoreOptionsFor(storeLocation)
+	sOpt := desync.Cfg.GetStoreOptionsFor(storeLocation)
 	sOpt.SkipVerify = true
 
 	// Open the local store to serve chunks from

@@ -12,7 +12,7 @@ import (
 )
 
 type untarOptions struct {
-	CmdStoreOptions
+	desync.CmdStoreOptions
 	desync.LocalFSOptions
 	stores    []string
 	cache     string
@@ -49,12 +49,12 @@ the output can be set to GNU tar, either an archive or STDOUT with '-'.
 	flags.BoolVar(&opt.NoSameOwner, "no-same-owner", false, "extract files as current user")
 	flags.BoolVar(&opt.NoSamePermissions, "no-same-permissions", false, "use current user's umask instead of what is in the archive")
 	flags.StringVar(&opt.outFormat, "output-format", "disk", "output format, 'disk' or 'gnu-tar'")
-	addStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runUntar(ctx context.Context, opt untarOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
 	if opt.readIndex && len(opt.stores) == 0 {
@@ -113,19 +113,19 @@ func runUntar(ctx context.Context, opt untarOptions, args []string) error {
 		return desync.UnTar(ctx, r, fs)
 	}
 
-	s, err := MultiStoreWithCache(opt.CmdStoreOptions, opt.cache, opt.stores...)
+	s, err := desync.MultiStoreWithCache(opt.CmdStoreOptions, opt.cache, opt.stores...)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
 	// Apparently the input must be an index, read it whole
-	index, err := ReadCaibxFile(input, opt.CmdStoreOptions)
+	index, err := desync.ReadCaibxFile(input, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
 
-	return desync.UnTarIndex(ctx, fs, index, s, opt.n, NewProgressBar("Unpacking "))
+	return desync.UnTarIndex(ctx, fs, index, s, opt.N, NewProgressBar("Unpacking "))
 }
 
 /*
@@ -137,14 +137,14 @@ func UntarCaibxFile(ctx context.Context, localFSOptions desync.LocalFSOptions, s
 	)
 	fs = desync.NewLocalFS(target, localFSOptions)
 
-	s, err := MultiStoreWithCache(storeOptions, cache, stores...)
+	s, err := desync.MultiStoreWithCache(storeOptions, cache, stores...)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
 	// Apparently the input must be an index, read it whole
-	index, err := ReadCaibxFile(input, storeOptions)
+	index, err := desync.ReadCaibxFile(input, storeOptions)
 	if err != nil {
 		return err
 	}

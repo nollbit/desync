@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/folbricht/desync"
 	"github.com/spf13/cobra"
 )
 
 type listOptions struct {
-	CmdStoreOptions
+	desync.CmdStoreOptions
 }
 
 func newListCommand(ctx context.Context) *cobra.Command {
@@ -27,17 +28,17 @@ the index from STDIN.`,
 		SilenceUsage: true,
 	}
 	flags := cmd.Flags()
-	addStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runList(ctx context.Context, opt listOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
 
 	// Read the input
-	c, err := ReadCaibxFile(args[0], opt.CmdStoreOptions)
+	c, err := desync.ReadCaibxFile(args[0], opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}

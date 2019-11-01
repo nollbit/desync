@@ -12,7 +12,7 @@ import (
 )
 
 type makeOptions struct {
-	CmdStoreOptions
+	desync.CmdStoreOptions
 	store      string
 	chunkSize  string
 	printStats bool
@@ -39,12 +39,12 @@ to STDOUT.`,
 	flags.StringVarP(&opt.store, "store", "s", "", "target store")
 	flags.StringVarP(&opt.chunkSize, "chunk-size", "m", "16:64:256", "min:avg:max chunk size in kb")
 	flags.BoolVarP(&opt.printStats, "print-stats", "", false, "show chunking statistics")
-	addStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runMake(ctx context.Context, opt makeOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
 
@@ -59,7 +59,7 @@ func runMake(ctx context.Context, opt makeOptions, args []string) error {
 	// Open the target store if one was given
 	var s desync.WriteStore
 	if opt.store != "" {
-		s, err = WritableStore(opt.store, opt.CmdStoreOptions)
+		s, err = desync.WritableStore(opt.store, opt.CmdStoreOptions)
 		if err != nil {
 			return err
 		}
@@ -68,7 +68,7 @@ func runMake(ctx context.Context, opt makeOptions, args []string) error {
 
 	// Split up the file and create and index from it
 	pb := NewProgressBar("Chunking ")
-	index, stats, err := desync.IndexFromFile(ctx, dataFile, opt.n, min, avg, max, pb)
+	index, stats, err := desync.IndexFromFile(ctx, dataFile, opt.N, min, avg, max, pb)
 	if err != nil {
 		return err
 	}
@@ -76,14 +76,14 @@ func runMake(ctx context.Context, opt makeOptions, args []string) error {
 	// Chop up the file into chunks and store them in the target store if a store was given
 	if s != nil {
 		pb := NewProgressBar("Storing ")
-		if err := desync.ChopFile(ctx, dataFile, index.Chunks, s, opt.n, pb); err != nil {
+		if err := desync.ChopFile(ctx, dataFile, index.Chunks, s, opt.N, pb); err != nil {
 			return err
 		}
 	}
 	if opt.printStats {
 		return printJSON(stderr, stats) // write to stderr since stdout could be used for index data
 	}
-	return storeCaibxFile(index, indexFile, opt.CmdStoreOptions)
+	return desync.StoreCaibxFile(index, indexFile, opt.CmdStoreOptions)
 }
 
 func parseChunkSizeParam(s string) (min, avg, max uint64, err error) {

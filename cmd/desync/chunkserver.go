@@ -14,8 +14,8 @@ import (
 )
 
 type chunkServerOptions struct {
-	CmdStoreOptions
-	cmdServerOptions
+	desync.CmdStoreOptions
+	desync.CmdServerOptions
 	stores          []string
 	cache           string
 	storeFile       string
@@ -64,24 +64,24 @@ needing to restart the server. This can be done under load as well.
 	flags.StringVarP(&opt.cache, "cache", "c", "", "store to be used as cache")
 	flags.StringSliceVarP(&opt.listenAddresses, "listen", "l", []string{":http"}, "listen address")
 	flags.BoolVarP(&opt.writable, "writeable", "w", false, "support writing")
-	flags.BoolVar(&opt.skipVerify, "skip-verify-read", true, "don't verify chunk data read from upstream stores (faster)")
+	flags.BoolVar(&opt.SkipVerify, "skip-verify-read", true, "don't verify chunk data read from upstream stores (faster)")
 	flags.BoolVar(&opt.skipVerifyWrite, "skip-verify-write", true, "don't verify chunk data written to this server (faster)")
 	flags.BoolVarP(&opt.uncompressed, "uncompressed", "u", false, "serve uncompressed chunks")
 	flags.StringVar(&opt.logFile, "log", "", "request log file or - for STDOUT")
-	addStoreOptions(&opt.CmdStoreOptions, flags)
-	addServerOptions(&opt.cmdServerOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddServerOptions(&opt.CmdServerOptions, flags)
 	return cmd
 }
 
 func runChunkServer(ctx context.Context, opt chunkServerOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
-	if err := opt.cmdServerOptions.validate(); err != nil {
+	if err := opt.CmdServerOptions.Validate(); err != nil {
 		return err
 	}
-	if opt.auth == "" {
-		opt.auth = os.Getenv("DESYNC_HTTP_AUTH")
+	if opt.Auth == "" {
+		opt.Auth = os.Getenv("DESYNC_HTTP_AUTH")
 	}
 
 	addresses := opt.listenAddresses
@@ -127,7 +127,7 @@ func runChunkServer(ctx context.Context, opt chunkServerOptions, args []string) 
 	}
 	defer s.Close()
 
-	handler := desync.NewHTTPHandler(s, opt.writable, opt.skipVerifyWrite, opt.uncompressed, opt.auth)
+	handler := desync.NewHTTPHandler(s, opt.writable, opt.skipVerifyWrite, opt.uncompressed, opt.Auth)
 
 	// Wrap the handler in a logger if requested
 	switch opt.logFile {
@@ -146,7 +146,7 @@ func runChunkServer(ctx context.Context, opt chunkServerOptions, args []string) 
 	http.Handle("/", handler)
 
 	// Start the server
-	return serve(ctx, opt.cmdServerOptions, addresses...)
+	return serve(ctx, opt.CmdServerOptions, addresses...)
 }
 
 // Wrapper for http.HandlerFunc to add logging for requests (and response codes)
@@ -171,7 +171,7 @@ func chunkServerStore(opt chunkServerOptions) (desync.Store, error) {
 		if cache != "" {
 			return nil, errors.New("--cache and --store-file can't be used together")
 		}
-		stores, cache, err = readStoreFile(opt.storeFile)
+		stores, cache, err = desync.ReadStoreFile(opt.storeFile)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read store-file '%s'", err)
 		}
@@ -189,12 +189,12 @@ func chunkServerStore(opt chunkServerOptions) (desync.Store, error) {
 
 	var s desync.Store
 	if opt.writable {
-		s, err = WritableStore(stores[0], opt.CmdStoreOptions)
+		s, err = desync.WritableStore(stores[0], opt.CmdStoreOptions)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		s, err = MultiStoreWithCache(opt.CmdStoreOptions, cache, stores...)
+		s, err = desync.MultiStoreWithCache(opt.CmdStoreOptions, cache, stores...)
 		if err != nil {
 			return nil, err
 		}

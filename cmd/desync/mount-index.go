@@ -46,12 +46,12 @@ needing to restart the server. This can be done under load as well.
 	flags.StringSliceVarP(&opt.stores, "store", "s", nil, "source store(s)")
 	flags.StringVarP(&opt.cache, "cache", "c", "", "store to be used as cache")
 	flags.StringVar(&opt.storeFile, "store-file", "", "read store arguments from a file, supports reload on SIGHUP")
-	addStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runMountIndex(ctx context.Context, opt mountIndexOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
 
@@ -90,13 +90,13 @@ func runMountIndex(ctx context.Context, opt mountIndexOptions, args []string) er
 	defer s.Close()
 
 	// Read the index
-	idx, err := ReadCaibxFile(indexFile, opt.CmdStoreOptions)
+	idx, err := desync.ReadCaibxFile(indexFile, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
 
 	// Mount it
-	return desync.MountIndex(ctx, idx, mountPoint, mountFName, s, opt.n)
+	return desync.MountIndex(ctx, idx, mountPoint, mountFName, s, opt.N)
 }
 
 // Reads the store-related command line options and returns the appropriate store.
@@ -112,7 +112,7 @@ func mountIndexStore(opt mountIndexOptions) (desync.Store, error) {
 		if cache != "" {
 			return nil, errors.New("--cache and --store-file can't be used together")
 		}
-		stores, cache, err = readStoreFile(opt.storeFile)
+		stores, cache, err = desync.ReadStoreFile(opt.storeFile)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read store-file '%s'", err)
 		}
@@ -122,5 +122,5 @@ func mountIndexStore(opt mountIndexOptions) (desync.Store, error) {
 	if len(stores) == 0 {
 		return nil, errors.New("no store provided")
 	}
-	return MultiStoreWithCache(opt.CmdStoreOptions, cache, stores...)
+	return desync.MultiStoreWithCache(opt.CmdStoreOptions, cache, stores...)
 }

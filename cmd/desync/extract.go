@@ -13,7 +13,7 @@ import (
 )
 
 type extractOptions struct {
-	CmdStoreOptions
+	desync.CmdStoreOptions
 	stores     []string
 	cache      string
 	seeds      []string
@@ -53,12 +53,12 @@ the index from STDIN.`,
 	flags.StringVarP(&opt.cache, "cache", "c", "", "store to be used as cache")
 	flags.BoolVarP(&opt.inPlace, "in-place", "k", false, "extract the file in place and keep it in case of error")
 	flags.BoolVarP(&opt.printStats, "print-stats", "", false, "print statistics")
-	addStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runExtract(ctx context.Context, opt extractOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
 
@@ -75,14 +75,14 @@ func runExtract(ctx context.Context, opt extractOptions, args []string) error {
 
 	// Parse the store locations, open the stores and add a cache is requested
 	var s desync.Store
-	s, err := MultiStoreWithCache(opt.CmdStoreOptions, opt.cache, opt.stores...)
+	s, err := desync.MultiStoreWithCache(opt.CmdStoreOptions, opt.cache, opt.stores...)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
 	// Read the input
-	idx, err := ReadCaibxFile(inFile, opt.CmdStoreOptions)
+	idx, err := desync.ReadCaibxFile(inFile, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
@@ -102,9 +102,9 @@ func runExtract(ctx context.Context, opt extractOptions, args []string) error {
 
 	var stats *desync.ExtractStats
 	if opt.inPlace {
-		stats, err = writeInplace(ctx, outFile, idx, s, seeds, opt.n)
+		stats, err = writeInplace(ctx, outFile, idx, s, seeds, opt.N)
 	} else {
-		stats, err = writeWithTmpFile(ctx, outFile, idx, s, seeds, opt.n)
+		stats, err = writeWithTmpFile(ctx, outFile, idx, s, seeds, opt.N)
 	}
 	if err != nil {
 		return err
@@ -143,10 +143,10 @@ func writeInplace(ctx context.Context, name string, idx desync.Index, s desync.S
 	return desync.AssembleFile(ctx, name, idx, s, seeds, n, pb)
 }
 
-func readSeeds(dstFile string, locations []string, opts CmdStoreOptions) ([]desync.Seed, error) {
+func readSeeds(dstFile string, locations []string, opts desync.CmdStoreOptions) ([]desync.Seed, error) {
 	var seeds []desync.Seed
 	for _, srcIndexFile := range locations {
-		srcIndex, err := ReadCaibxFile(srcIndexFile, opts)
+		srcIndex, err := desync.ReadCaibxFile(srcIndexFile, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +161,7 @@ func readSeeds(dstFile string, locations []string, opts CmdStoreOptions) ([]desy
 	return seeds, nil
 }
 
-func readSeedDirs(dstFile, dstIdxFile string, dirs []string, opts CmdStoreOptions) ([]desync.Seed, error) {
+func readSeedDirs(dstFile, dstIdxFile string, dirs []string, opts desync.CmdStoreOptions) ([]desync.Seed, error) {
 	var seeds []desync.Seed
 	absIn, err := filepath.Abs(dstIdxFile)
 	if err != nil {
@@ -192,7 +192,7 @@ func readSeedDirs(dstFile, dstIdxFile string, dirs []string, opts CmdStoreOption
 				return nil
 			}
 			// Read the index and add it to the list of seeds
-			srcIndex, err := ReadCaibxFile(path, opts)
+			srcIndex, err := desync.ReadCaibxFile(path, opts)
 			if err != nil {
 				return err
 			}

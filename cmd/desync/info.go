@@ -11,7 +11,7 @@ import (
 )
 
 type infoOptions struct {
-	CmdStoreOptions
+	desync.CmdStoreOptions
 	stores      []string
 	printFormat string
 }
@@ -35,17 +35,17 @@ store. Use '-' to read the index from STDIN.`,
 	flags := cmd.Flags()
 	flags.StringSliceVarP(&opt.stores, "store", "s", nil, "source store(s)")
 	flags.StringVarP(&opt.printFormat, "format", "f", "json", "output format, plain or json")
-	addStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runInfo(ctx context.Context, opt infoOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
 
 	// Read the index
-	c, err := ReadCaibxFile(args[0], opt.CmdStoreOptions)
+	c, err := desync.ReadCaibxFile(args[0], opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func runInfo(ctx context.Context, opt infoOptions, args []string) error {
 	results.Unique = len(deduped)
 
 	if len(opt.stores) > 0 {
-		store, err := multiStoreWithRouter(CmdStoreOptions{n: opt.n}, opt.stores...)
+		store, err := desync.MultiStoreWithRouter(desync.CmdStoreOptions{N: opt.N}, opt.stores...)
 		if err != nil {
 			return err
 		}
@@ -93,7 +93,7 @@ func runInfo(ctx context.Context, opt infoOptions, args []string) error {
 		// Query the store in parallel for better performance
 		var wg sync.WaitGroup
 		ids := make(chan desync.ChunkID)
-		for i := 0; i < opt.n; i++ {
+		for i := 0; i < opt.N; i++ {
 			wg.Add(1)
 			go func() {
 				for id := range ids {

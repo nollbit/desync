@@ -11,7 +11,7 @@ import (
 )
 
 type mtreeOptions struct {
-	CmdStoreOptions
+	desync.CmdStoreOptions
 	stores    []string
 	cache     string
 	readIndex bool
@@ -40,12 +40,12 @@ The input is either a catar archive, or a caidx index file (with -i and -s).
 	flags.StringSliceVarP(&opt.stores, "store", "s", nil, "source store(s), used with -i")
 	flags.StringVarP(&opt.cache, "cache", "c", "", "store to be used as cache")
 	flags.BoolVarP(&opt.readIndex, "index", "i", false, "read index file (caidx), not catar")
-	addStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
 	return cmd
 }
 
 func runMtree(ctx context.Context, opt mtreeOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
 	if opt.readIndex && len(opt.stores) == 0 {
@@ -69,17 +69,17 @@ func runMtree(ctx context.Context, opt mtreeOptions, args []string) error {
 		return desync.UnTar(ctx, r, fs)
 	}
 
-	s, err := MultiStoreWithCache(opt.CmdStoreOptions, opt.cache, opt.stores...)
+	s, err := desync.MultiStoreWithCache(opt.CmdStoreOptions, opt.cache, opt.stores...)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
 	// Apparently the input must be an index, read it whole
-	index, err := ReadCaibxFile(input, opt.CmdStoreOptions)
+	index, err := desync.ReadCaibxFile(input, opt.CmdStoreOptions)
 	if err != nil {
 		return err
 	}
 
-	return desync.UnTarIndex(ctx, fs, index, s, opt.n, nil)
+	return desync.UnTarIndex(ctx, fs, index, s, opt.N, nil)
 }

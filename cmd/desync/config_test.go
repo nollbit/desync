@@ -19,15 +19,15 @@ func TestConfigFile(t *testing.T) {
 	// Set the global config file name
 	cfgFile = f.Name()
 
-	// Call init, this should use the custom config file and global "cfg" should contain the
+	// Call init, this should use the custom config file and global "Cfg" should contain the
 	// values
-	initConfig()
+	err = initConfig()
 
 	// If everything worked, the options should be set according to the config file created above
-	opt := cfg.GetStoreOptionsFor("/path/to/store")
+	opt := Cfg.GetStoreOptionsFor("/path/to/store")
 	require.True(t, opt.Uncompressed)
 
 	// The options for a non-matching store should be default
-	opt = cfg.GetStoreOptionsFor("/path/other-store")
+	opt = Cfg.GetStoreOptionsFor("/path/other-store")
 	require.False(t, opt.Uncompressed)
 }

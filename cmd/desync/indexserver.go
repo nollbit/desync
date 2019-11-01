@@ -17,8 +17,8 @@ import (
 )
 
 type indexServerOptions struct {
-	CmdStoreOptions
-	cmdServerOptions
+	desync.CmdStoreOptions
+	desync.CmdServerOptions
 	store           string
 	listenAddresses []string
 	writable        bool
@@ -47,20 +47,20 @@ enables writing to this store.`,
 	flags.StringSliceVarP(&opt.listenAddresses, "listen", "l", []string{":http"}, "listen address")
 	flags.BoolVarP(&opt.writable, "writeable", "w", false, "support writing")
 	flags.StringVar(&opt.logFile, "log", "", "request log file or - for STDOUT")
-	addStoreOptions(&opt.CmdStoreOptions, flags)
-	addServerOptions(&opt.cmdServerOptions, flags)
+	desync.AddStoreOptions(&opt.CmdStoreOptions, flags)
+	desync.AddServerOptions(&opt.CmdServerOptions, flags)
 	return cmd
 }
 
 func runIndexServer(ctx context.Context, opt indexServerOptions, args []string) error {
-	if err := opt.CmdStoreOptions.validate(); err != nil {
+	if err := opt.CmdStoreOptions.Validate(); err != nil {
 		return err
 	}
-	if err := opt.cmdServerOptions.validate(); err != nil {
+	if err := opt.CmdServerOptions.Validate(); err != nil {
 		return err
 	}
-	if opt.auth == "" {
-		opt.auth = os.Getenv("DESYNC_HTTP_AUTH")
+	if opt.Auth == "" {
+		opt.Auth = os.Getenv("DESYNC_HTTP_AUTH")
 	}
 
 	addresses := opt.listenAddresses
@@ -84,16 +84,16 @@ func runIndexServer(ctx context.Context, opt indexServerOptions, args []string) 
 		err error
 	)
 	if opt.writable {
-		s, _, err = writableIndexStore(loc, opt.CmdStoreOptions)
+		s, _, err = desync.WritableIndexStore(loc, opt.CmdStoreOptions)
 	} else {
-		s, _, err = indexStoreFromLocation(loc, opt.CmdStoreOptions)
+		s, _, err = desync.IndexStoreFromLocation(loc, opt.CmdStoreOptions)
 	}
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
-	handler := desync.NewHTTPIndexHandler(s, opt.writable, opt.auth)
+	handler := desync.NewHTTPIndexHandler(s, opt.writable, opt.Auth)
 
 	// Wrap the handler in a logger if requested
 	switch opt.logFile {
@@ -112,17 +112,17 @@ func runIndexServer(ctx context.Context, opt indexServerOptions, args []string) 
 	http.Handle("/", handler)
 
 	// Start the server
-	return serve(ctx, opt.cmdServerOptions, addresses...)
+	return serve(ctx, opt.CmdServerOptions, addresses...)
 }
 
-func serve(ctx context.Context, opt cmdServerOptions, addresses ...string) error {
+func serve(ctx context.Context, opt desync.CmdServerOptions, addresses ...string) error {
 	tlsConfig := &tls.Config{}
-	if opt.mutualTLS {
+	if opt.MutualTLS {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
-	if opt.clientCA != "" {
+	if opt.ClientCA != "" {
 		certPool := x509.NewCertPool()
-		b, err := ioutil.ReadFile(opt.clientCA)
+		b, err := ioutil.ReadFile(opt.ClientCA)
 		if err != nil {
 			return err
 		}
@@ -144,10 +144,10 @@ func serve(ctx context.Context, opt cmdServerOptions, addresses ...string) error
 				ErrorLog:  log.New(stderr, "", log.LstdFlags),
 			}
 			var err error
-			if opt.key == "" {
+			if opt.Key == "" {
 				err = server.ListenAndServe()
 			} else {
-				err = server.ListenAndServeTLS(opt.cert, opt.key)
+				err = server.ListenAndServeTLS(opt.Cert, opt.Key)
 			}
 			fmt.Fprintln(stderr, err)
 			cancel()
