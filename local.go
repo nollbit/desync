@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/folbricht/tempfile"
 )
@@ -69,6 +70,12 @@ func (s LocalStore) StoreChunk(chunk *Chunk) error {
 		b   []byte
 		err error
 	)
+	_, err = os.Stat(p)
+	if os.IsExist(err) {
+		// Someone beat us to it, no more work to be done
+		return nil
+	}
+
 	if s.opt.Uncompressed {
 		b, err = chunk.Uncompressed()
 	} else {
@@ -80,7 +87,7 @@ func (s LocalStore) StoreChunk(chunk *Chunk) error {
 	if err := os.MkdirAll(d, 0755); err != nil {
 		return err
 	}
-	tmp, err := tempfile.NewMode(d, ".tmp-cacnk", 0644)
+	tmp, err := tempfile.NewSuffixAndMode(d, "cacnk", ".tmp", 0644)
 	if err != nil {
 		return err
 	}
@@ -90,7 +97,39 @@ func (s LocalStore) StoreChunk(chunk *Chunk) error {
 		return err
 	}
 	tmp.Close() // Windows can't rename open files, close explicitly
-	return os.Rename(tmp.Name(), p)
+
+	// Windows might be blocked by virus scanners etc preventing file rename
+	// Also make sure if the file already exists, use it if valid or remove and retry if invalid
+	err = os.Rename(tmp.Name(), p)
+	retriesLeft := 10
+	for err != nil {
+		if _, err := os.Stat(p); os.IsNotExist(err) {
+			fmt.Printf("Failed to rename file from `%s` to `%s`, error: %s\n", tmp.Name(), p, err)
+		} else {
+			// File already exists, validate if it is correct
+			_, err = s.GetChunk(chunk.ID())
+			switch err.(type) {
+			case ChunkInvalid: // bad chunk, remove it so we can try again
+				if err = os.Remove(p); err != nil {
+					fmt.Printf("Failed to remove invalid chunk `%s`, error %s\n", p, err)
+				}
+			case nil:
+				if err = os.Remove(tmp.Name()); err != nil {
+					fmt.Printf("Valid chunk already exists, failed to remove temp file `%s`, error: %s\n", tmp.Name(), err)
+				}
+			default: // unexpected
+				return err
+			}
+		}
+		if retriesLeft == 0 || err == nil {
+			return err
+		}
+		// If the chunk file or our tmp file is locked by anti-virus or some other process wait a little before retrying
+		time.Sleep(100 * time.Millisecond)
+		err = os.Rename(tmp.Name(), p)
+		retriesLeft--
+	}
+	return err
 }
 
 // Verify all chunks in the store. If repair is set true, bad chunks are deleted.
