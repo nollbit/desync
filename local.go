@@ -111,21 +111,28 @@ func (s LocalStore) StoreChunk(chunk *Chunk) error {
 			switch err.(type) {
 			case ChunkInvalid: // bad chunk, remove it so we can try again
 				if err = os.Remove(p); err != nil {
+					if os.IsNotExist(err) {
+						// Someone else removed the invalid chunk
+						break
+					}
 					fmt.Printf("Failed to remove invalid chunk `%s`, error %s\n", p, err)
 				}
 			case nil:
 				if err = os.Remove(tmp.Name()); err != nil {
 					fmt.Printf("Valid chunk already exists, failed to remove temp file `%s`, error: %s\n", tmp.Name(), err)
+				} else {
+					// All good, we have cleaned up after ourselves
+					return nil
 				}
 			default: // unexpected
 				return err
 			}
 		}
-		if retriesLeft == 0 || err == nil {
+		if retriesLeft == 0 {
 			return err
 		}
 		// If the chunk file or our tmp file is locked by anti-virus or some other process wait a little before retrying
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 		err = os.Rename(tmp.Name(), p)
 		retriesLeft--
 	}
