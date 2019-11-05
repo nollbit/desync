@@ -53,6 +53,21 @@ func (s LocalStore) GetChunk(id ChunkID) (*Chunk, error) {
 	return NewChunkWithID(id, nil, b, s.opt.SkipVerify)
 }
 
+func (s LocalStore) getChunkForceValidate(id ChunkID) (*Chunk, error) {
+	chunk, err := s.GetChunk(id)
+	if err != nil {
+		return chunk, err
+	}
+	if s.opt.SkipVerify {
+		chunk.idCalculated = false
+		sum := chunk.ID()
+		if sum != id {
+			return nil, ChunkInvalid{ID: id, Sum: sum}
+		}
+	}
+	return chunk, err
+}
+
 // RemoveChunk deletes a chunk, typically an invalid one, from the filesystem.
 // Used when verifying and repairing caches.
 func (s LocalStore) RemoveChunk(id ChunkID) error {
@@ -107,7 +122,7 @@ func (s LocalStore) StoreChunk(chunk *Chunk) error {
 			fmt.Printf("Failed to rename file from `%s` to `%s`, error: %s\n", tmp.Name(), p, err)
 		} else {
 			// File already exists, validate if it is correct
-			_, err = s.GetChunk(chunk.ID())
+			_, err := s.getChunkForceValidate(chunk.ID())
 			switch err.(type) {
 			case ChunkInvalid: // bad chunk, remove it so we can try again
 				if err = os.Remove(p); err != nil {
