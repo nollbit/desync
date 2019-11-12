@@ -83,7 +83,6 @@ func NewRemoteHTTPStoreBase(location *url.URL, opt StoreOptions) (*RemoteHTTPBas
 		timeout = 0
 	}
 	client := &http.Client{Transport: tr, Timeout: timeout}
-
 	return &RemoteHTTPBase{location: location, client: client, opt: opt}, nil
 }
 
@@ -103,6 +102,7 @@ func (r *RemoteHTTPBase) GetObject(name string) ([]byte, error) {
 	)
 retry:
 	attempt++
+
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
@@ -110,6 +110,7 @@ retry:
 	if r.opt.HTTPAuth != "" {
 		req.Header.Set("Authorization", r.opt.HTTPAuth)
 	}
+
 	resp, err = r.client.Do(req)
 	if err != nil {
 		if attempt >= r.opt.ErrorRetry {
@@ -117,8 +118,11 @@ retry:
 		}
 		goto retry
 	}
+
 	defer resp.Body.Close()
 	switch resp.StatusCode {
+	case 503:
+		goto retry
 	case 200: // expected
 	case 404:
 		return nil, NoSuchObject{name}
