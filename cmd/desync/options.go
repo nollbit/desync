@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"time"
 
 	"github.com/folbricht/desync"
 	"github.com/spf13/pflag"
@@ -10,18 +11,22 @@ import (
 // cmdStoreOptions are used to pass additional options to store initalization from the
 // commandline. These generally override settings from the config file.
 type cmdStoreOptions struct {
-	n             int
-	clientCert    string
-	clientKey     string
-	caCert        string
-	skipVerify    bool
-	trustInsecure bool
+	n               int
+	errorRetry      int
+	timeoutSeconds  int
+	clientCert      string
+	clientKey       string
+	caCert          string
+	skipVerify      bool
+	trustInsecure   bool
 }
 
 // MergeWith takes store options as read from the config, and applies command-line
 // provided options on top of them and returns the merged result.
 func (o cmdStoreOptions) MergedWith(opt desync.StoreOptions) desync.StoreOptions {
 	opt.N = o.n
+	opt.ErrorRetry = o.errorRetry
+	opt.Timeout = time.Duration(o.timeoutSeconds) * time.Second
 	if o.clientCert != "" {
 		opt.ClientCert = o.clientCert
 	}
@@ -51,6 +56,8 @@ func (o cmdStoreOptions) validate() error {
 // Add common store option flags to a command flagset.
 func addStoreOptions(o *cmdStoreOptions, f *pflag.FlagSet) {
 	f.IntVarP(&o.n, "concurrency", "n", 10, "number of concurrent goroutines")
+	f.IntVarP(&o.errorRetry, "error-retries", "", 1, "number of retries for stores that support retrying")
+	f.IntVarP(&o.timeoutSeconds, "timeout", "", 60, "number of seconds for http timeout")
 	f.StringVar(&o.clientCert, "client-cert", "", "path to client certificate for TLS authentication")
 	f.StringVar(&o.clientKey, "client-key", "", "path to client key for TLS authentication")
 	f.StringVar(&o.caCert, "ca-cert", "", "trust authorities in this file, instead of OS trust store")
