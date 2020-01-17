@@ -1,5 +1,7 @@
 # desync
 
+[![GoDoc](https://godoc.org/github.com/folbricht/desync?status.svg)](https://godoc.org/github.com/folbricht/desync)
+
 This project re-implements many features of upstream [casync](https://github.com/systemd/casync) in [Go](https://golang.org/). It seeks to maintain compatibility with casync's data structures, protocols and types, such as chunk stores (castr), index files (caibx/caidx) and archives (catar) in order to function as a drop-in replacement in many use cases. It also tries to maintain support for platforms other than Linux and simplify build/installation. It consists of a [library](https://godoc.org/github.com/folbricht/desync) that implements the features, available for integration into any 3rd-party product as well as a command-line tool.
 
 For support and discussion, see [![Gitter chat](https://badges.gitter.im/desync-casync-client/Lobby.png)](https://gitter.im/desync-casync-client/Lobby). Feature requests should be discussed there before filing, unless you're interested in doing the work to implement them yourself.
@@ -8,10 +10,10 @@ For support and discussion, see [![Gitter chat](https://badges.gitter.im/desync-
 
 Among the distinguishing factors:
 
-- Supported on MacOS, though there could be incompatibilities when exchanging catar-files between Linux and Mac for example since devices and filemodes differ slightly. \*BSD should work as well but hasn't been tested. Windows supports a limited subset of commands.
+- Supported on MacOS, though there could be incompatibilities when exchanging catar-files between Linux and Mac for example since devices and filemodes differ slightly. \*BSD should work as well but hasn't been tested. Windows supports a subset of commands.
 - Where the upstream command has chosen to optimize for storage efficiency (f/e, being able to use local files as "seeds", building temporary indexes into them), this command chooses to optimize for runtime performance (maintaining a local explicit chunk store, avoiding the need to reindex) at cost to storage efficiency.
 - Where the upstream command has chosen to take full advantage of Linux platform features, this client chooses to implement a minimum featureset and, while high-value platform-specific features (such as support for btrfs reflinks into a decompressed local chunk cache) might be added in the future, the ability to build without them on other platforms will be maintained.
-- SHA512/256 is currently the only supported hash function.
+- Both, SHA512/256 and SHA256 are supported hash functions.
 - Only chunk stores using zstd compression as well uncompressed are supported at this point.
 - Supports local stores as well as remote stores (as client) over SSH, SFTP and HTTP
 - Built-in HTTP(S) chunk server that can proxy multiple local or remote stores and also supports caching and deduplication for concurrent requests.
@@ -24,6 +26,7 @@ Among the distinguishing factors:
 - Stores and retrieves index files from remote index stores such as HTTP, SFTP, S3 and GCS
 - Built-in HTTP(S) index server to read/write indexes
 - Reflinking matching blocks (rather than copying) from seed files if supported by the filesystem (currently only Btrfs and XFS)
+- catar archives can be created from standard tar archives, and they can also be extracted to GNU tar format.
 
 ## Terminology
 
@@ -50,13 +53,19 @@ extract | Extremely fast - Effectively the speed of a truncate() syscall | Fast 
 
 Copy-on-write filesystems such as Btrfs and XFS support cloning of blocks between files in order to save disk space as well as improve extraction performance. To utilize this feature, desync uses several seeds to clone sections of files rather than reading the data from chunk-stores and copying it in place:
 
-- A built-in seed for Null-chunks (a chunk of Max chunk site containing only 0 bytes). This can significantly reduce the disk usage of files with large 0-byte ranges, such as VM images. This will effectively turn an eager-zeroed VM disk into a sparse disk while retaining all the advantages of eager-zeroed disk images.
+- A built-in seed for Null-chunks (a chunk of Max chunk size containing only 0 bytes). This can significantly reduce disk usage of files with large 0-byte ranges, such as VM images. This will effectively turn an eager-zeroed VM disk into a sparse disk while retaining all the advantages of eager-zeroed disk images.
 - A build-in Self-seed. As chunks are being written to the destination file, the file itself becomes a seed. If one chunk, or a series of chunks is used again later in the file, it'll be cloned from the position written previously. This saves storage when the file contains several repetitive sections.
 - Seed files and their indexes can be provided when extracting a file. For this feature, it's necessary to already have the index plus its blob on disk. So for example `image-v1.vmdk` and `image-v1.vmdk.caibx` can be used as seed for the extract operation of `image-v2.vmdk`. The amount of additional disk space required to store `image-v2.vmdk` will be the delta between it and `image-v1.vmdk`.
 
 ![chunks-from-seeds](doc/seed.png)
 
 Even if cloning is not available, seeds are still useful. `desync` automatically determines if reflinks are available (and the block size used in the filesystem). If cloning is not supported, sections are copied instead of cloned. Copying still improves performance and reduces the load created by retrieving chunks over the network and decompressing them.
+
+## Reading and writing tar streams
+
+In addition to packing local filesystem trees into catar archives, it is possible to read a tar archive stream. Various tar formats such as GNU and BSD tar are supported. See [https://golang.org/pkg/archive/tar/](https://golang.org/pkg/archive/tar/) for details on supported formats. When reading from tar archives, the content is no re-ordered and written to the catar in the same order. This may create output files that are different when comparing to using the local filesystem as input since the order depends entirely on how the tar file is created. Since the catar format does not support hardlinks, the input tar stream needs to follow hardlinks for desync to process them correctly. See the `--hard-dereference` option in the tar utility.
+
+catar archives can also be extracted to GNU tar archive streams. All files in the output stream are ordered the same as in the catar.
 
 ## Tool
 
@@ -78,8 +87,8 @@ go get -u github.com/folbricht/desync/cmd/desync
 - `cache`        - populate a cache from index files without extracting a blob or archive
 - `chop`         - split a blob according to an existing caibx and store the chunks in a local store
 - `pull`         - serve chunks using the casync protocol over stdin/stdout. Set `CASYNC_REMOTE_PATH=desync` on the client to use it.
-- `tar`          - pack a catar file, optionally chunk the catar and create an index file. Not available on Windows.
-- `untar`        - unpack a catar file or an index referencing a catar. Not available on Windows.
+- `tar`          - pack a catar file, optionally chunk the catar and create an index file.
+- `untar`        - unpack a catar file or an index referencing a catar. Device entries in tar files are unsuppored and `--no-same-owner` and `--no-same-permissions` options are ignored on Windows.
 - `prune`        - remove unreferenced chunks from a local or S3 store. Use with caution, can lead to data loss.
 - `verify-index` - verify that an index file matches a given blob
 - `chunk-server` - start a HTTP(S) chunk server/store
@@ -87,6 +96,7 @@ go get -u github.com/folbricht/desync/cmd/desync
 - `make`         - split a blob into chunks and create an index file
 - `mount-index`  - FUSE mount a blob index. Will make the blob available as single file inside the mountpoint.
 - `info`         - Show information about an index file, such as number of chunks and optionally chunks from an index that a re present in a store
+- `mtree`        - Print the content of an archive or index in mtree-compatible format.
 
 ### Options (not all apply to all commands)
 
@@ -135,6 +145,22 @@ Not all types of stores support all operations. The table below lists the suppor
 ### Store failover
 
 Given stores with identical content (same chunks in each), it is possible to group them in a way that provides resilience to failures. Store groups are specified in the command line using `|` as separator in the same `-s` option. For example using `-s "http://server1/|http://server2/"`, requests will normally be sent to `server1`, but if a failure is encountered, all subsequent requests will be routed to `server2`. There is no automatic fail-back. A failure in `server2` will cause it to switch back to `server1`. Any number of stores can be grouped this way. Note that a missing chunk is treated as a failure immediately, no other servers will be tried, hence the need for all grouped stores to hold the same content.
+
+### Dynamic store configuration
+
+Some long-running processes, namely `chunk-server` and `mount-index` may require a reconfiguration without having to restart them. This can be achieved by starting them with the `--store-file` options which provides the arguments that are normally passed via command line flags `--store` and `--cache` from a JSON file instead. Once the server is running, a SIGHUP to the process will trigger a reload of the configuration and replace the stores internally without restart. This can be done under load. If the configuration in the file is found to be invalid, and error is printed to STDERR and the reload ignored. The structure of the store-file is as follows:
+
+```json
+{
+  "stores": [
+    "/path/to/store1",
+    "/path/to/store2"
+  ],
+  "cache": "/path/to/cache"
+}
+```
+
+This can be combined with store failover by providing the same syntax as is used in the command-line, for example `{"stores":["/path/to/main|/path/to/backup"]}`, See [Examples](#examples) for details on how to use the `--store-file` option.
 
 ### Remote indexes
 
@@ -388,6 +414,24 @@ Unpack a directory tree using an index file referencing a chunked archive.
 desync untar -i -s /some/local/store archive.caidx /some/dir
 ```
 
+Pack a directory tree currently available as tar archive into a catar. The tar input stream can also be read from STDIN by providing '-' instead of the file name.
+
+```text
+desync tar --input-format=tar archive.catar /path/to/archive.tar
+```
+
+Process a tar stream into a catar. Since catar don't support hardlinks, we need to make sure those are dereferenced in the input stream.
+
+```text
+tar --hard-dereference -C /path/to/dir -c . | desync tar --input-format tar archive.catar -
+```
+
+Unpack a directory tree from an index file and store the output filesystem in a GNU tar file rather than the local filesystem. Instead of an archive file, the output can be given as '-' which will write to STDOUT.
+
+```text
+desync untar -i -s /some/local/store --output-format=gnu-tar archive.caidx /path/to/archive.tar
+```
+
 Prune a store to only contain chunks that are referenced in the provided index files. Possible data loss.
 
 ```text
@@ -404,6 +448,22 @@ Start a chunk server on port 8080 acting as proxy for other remote HTTP and SSH 
 
 ```text
 desync chunk-server -s http://192.168.1.1/ -s ssh://192.168.1.2/store -c cache -l :8080
+```
+
+Start a chunk server with a store-file, this allows the configuration to be re-read on SIGHUP without restart.
+
+```text
+# Create store file
+echo '{"stores": ["http://192.168.1.1/"], "cache": "/tmp/cache"}` > stores.json
+
+# Start the server
+desync chunk-server --store-file stores.json -l :8080
+
+# Modify
+echo '{"stores": ["http://192.168.1.2/"], "cache": "/tmp/cache"}` > stores.json
+
+# Reload
+killall -1 desync
 ```
 
 Start a writable index server, chunk a file and store the index.
@@ -448,6 +508,22 @@ FUSE mount a chunked and remote index file. First a (small) index file is read f
 
 ```text
 desync cat -s http://192.168.1.1/store http://192.168.1.2/small.caibx | desync mount-index -s http://192.168.1.1/store - /mnt/point
+```
+
+Long-running FUSE mount that may need to have its store setup changed without unmounting. This can be done by using the `--store-file` option rather than speicifying store+cache in the command line. The process will then reload the file when a SIGHUP is sent.
+
+```text
+# Create the store file
+echo '{"stores": ["http://192.168.1.1/"], "cache": "/tmp/cache"}` > stores.json
+
+# Start the mount
+desync mount-index --store-file stores.json index.caibx /some/mnt
+
+# Modify the store setup
+echo '{"stores": ["http://192.168.1.2/"], "cache": "/tmp/cache"}` > stores.json
+
+# Reload
+killall -1 desync
 ```
 
 Show information about an index file to see how many of its chunks are present in a local store or an S3 store. The local store is queried first, S3 is only queried if the chunk is not present in the local store. The output will be in JSON format (`--format=json`) for easier processing in scripts.
@@ -523,4 +599,3 @@ desync extract --client-key client.key --client-cert client.crt --ca-cert ca.crt
 ## Links
 
 - casync - [https://github.com/systemd/casync](https://github.com/systemd/casync)
-- GoDoc for desync library - [https://godoc.org/github.com/folbricht/desync](https://godoc.org/github.com/folbricht/desync)
